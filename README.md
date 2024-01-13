@@ -1,3 +1,4 @@
+# YOLOv8 Pose Detection on the Browser
 <p align="center">
   <img src="img/screenshot.jpg" />
 </p>
