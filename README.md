@@ -13,7 +13,7 @@ The repository contains the following implementations of YOLOv8 on the browser:
 * Image based YOLOv8 pose detection powered by ONNX. It recognizes multiple classes/objects. Works very fast.
 
 ## Setup
-Copy the contents of each folder and just run respective html file. All code, i.e. style and scripts are included in html file.  
+Copy the contents of each folder and just run respective html file. All code, i.e. style and scripts are included in each html file.  
 
 ## Models
 <b>ONNX</b>. Original YOLOv8n-pose model taken from official Ultralytics repository and converted to onnx. NMS file was created using adapted version of Wahyu Sentianto's <a href="https://github.com/Hyuto/fun/tree/master/test-onnx-graph-surgeon">graph surgeon example</a>.  
