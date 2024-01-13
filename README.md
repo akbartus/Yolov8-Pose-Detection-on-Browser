@@ -40,4 +40,7 @@ The example of custom YOLOv8 pose detection model will be demonstrated soon.
 
 
 ## Demo
-To see demo, please visit
+* <a href="https://yolov8pose.glitch.me/yolov8_pose_tfjs/webcamera.html">Web camera based YOLOv8 pose detection powered by TFJS</a>.
+* <a href="https://yolov8pose.glitch.me/yolov8_pose_tfjs/image.html">Image based YOLOv8 pose detection powered by TFJS</a>.
+* <a href="https://yolov8pose.glitch.me/yolov8_pose_onnx/webcamera.html">Web camera based YOLOv8 pose detection powered by ONNX</a>.
+* <a href="https://yolov8pose.glitch.me/yolov8_pose_onnx/image.html">Image based YOLOv8 pose detection powered by ONNX</a>.
