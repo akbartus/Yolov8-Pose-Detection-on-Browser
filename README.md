@@ -16,31 +16,29 @@ The repository contains the following implementations of YOLOv8 on the browser:
 Copy the contents of each folder and just run respective html file. All code, i.e. style and scripts are included in html file.  
 
 ## Models
--- ONNX
-Original YOLOv8n-pose model taken from official Ultralytics repository and converted to onnx. 
+<b>ONNX</b>. Original YOLOv8n-pose model taken from official Ultralytics repository and converted to onnx. NMS file was created using adapted version of Wahyu Sentianto's <a href="https://github.com/Hyuto/fun/tree/master/test-onnx-graph-surgeon">graph surgeon example</a>.  
 ```
 used model : yolov8n-pose.onnx
 size       : ~ 12.7Mb
 ```
-
 **NMS**
 
-ONNX model to perform NMS operator [CUSTOM].
+ONNX model to perform NMS operator.
 
 ```
-nms-yolov8.onnx
+nms-yolov8n-pose.onnx
 ```
-
+<b>TFJS</b>. Original YOLOv8n-pose model taken from official Ultralytics repository and converted to TFJS.
 
 ## Use another model
 
 It is possible to use bigger models converted to onnx, however this might impact the total loading time.
 
-To use another YOLOv8 model, download it from Ultralytics and convert it to onnx file format.
+To use another YOLOv8-pose model, download it from Ultralytics and convert it to ONNX or TFJS format.
 
 **Custom YOLOv8 Pose Detection Models**
 
-Please update labels object inside of main.js file.
+The example of custom YOLOv8 pose detection model will be demonstrated soon. 
 
 
 ## Demo
