@@ -1,16 +1,16 @@
-# YOLOv8 Pose Detection on the Browser
+# YOLOv8 Pose Detection (Estimation) on the Browser
 <p align="center">
   <img src="img/screenshot.jpg" />
 </p>
 
 ## Description and Rationale
-This repository was created to show implementations of YOLOv8 pose detection powered by ONNX and TFJS on the browser environment. It is written in vanilla JavaScript without any frameworks, can be run without any server(on frontend) and demonstrates pose detection on image and web camera. By creating this repository I hope to popularize popular object detection models as YOLO and hope it will find its wide use in STEM related areas. 
+This repository was created to show implementations of YOLOv8 pose detection (estimation) powered by ONNX and TFJS on the browser environment. It is written in vanilla JavaScript without any frameworks, can be run without any server(on frontend) and demonstrates pose detection on image and web camera. By creating this repository I hope to popularize popular object detection models as YOLO and hope it will find its wide use in STEM related areas. 
 
 The repository contains the following implementations of YOLOv8 on the browser:
-* Web camera based YOLOv8 pose detection powered by TFJS. It recognizes single class/object. Works very fast.
-* Image based YOLOv8 pose detection powered by TFJS. It recognizes only single class/object. Works very fast.
-* Web camera based YOLOv8 pose detection powered by ONNX.It recognizes multiple classes/objects. Works slower.
-* Image based YOLOv8 pose detection powered by ONNX. It recognizes multiple classes/objects. Works very fast.
+* Web camera based YOLOv8 pose detection (estimation) powered by TFJS. It recognizes single class/object. Works very fast.
+* Image based YOLOv8 pose detection (estimation) powered by TFJS. It recognizes only single class/object. Works very fast.
+* Web camera based YOLOv8 pose detection (estimation) powered by ONNX.It recognizes multiple classes/objects. Works slower.
+* Image based YOLOv8 pose detection (estimation) powered by ONNX. It recognizes multiple classes/objects. Works very fast.
 
 ## Setup
 Copy the contents of each folder and just run respective html file. All code, i.e. style and scripts are included in each html file.  
@@ -40,7 +40,7 @@ The example of custom YOLOv8 pose detection model will be demonstrated soon.
 
 
 ## Demo
-* <a href="https://yolov8pose.glitch.me/yolov8_pose_tfjs/webcamera.html">Web camera based YOLOv8 pose detection powered by TFJS</a>.
-* <a href="https://yolov8pose.glitch.me/yolov8_pose_tfjs/image.html">Image based YOLOv8 pose detection powered by TFJS</a>.
-* <a href="https://yolov8pose.glitch.me/yolov8_pose_onnx/webcamera.html">Web camera based YOLOv8 pose detection powered by ONNX</a>.
-* <a href="https://yolov8pose.glitch.me/yolov8_pose_onnx/image.html">Image based YOLOv8 pose detection powered by ONNX</a>.
+* <a href="https://yolov8pose.glitch.me/yolov8_pose_tfjs/webcamera.html">Web camera based YOLOv8 pose detection (estimation) powered by TFJS</a>.
+* <a href="https://yolov8pose.glitch.me/yolov8_pose_tfjs/image.html">Image based YOLOv8 pose detection (estimation) powered by TFJS</a>.
+* <a href="https://yolov8pose.glitch.me/yolov8_pose_onnx/webcamera.html">Web camera based YOLOv8 pose detection (estimation) powered by ONNX</a>.
+* <a href="https://yolov8pose.glitch.me/yolov8_pose_onnx/image.html">Image based YOLOv8 pose detection (estimation) powered by ONNX</a>.
