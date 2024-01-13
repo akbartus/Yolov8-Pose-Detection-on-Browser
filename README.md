@@ -21,9 +21,7 @@ Copy the contents of each folder and just run respective html file. All code, i.
 used model : yolov8n-pose.onnx
 size       : ~ 12.7Mb
 ```
-**NMS**
-
-ONNX model to perform NMS operator.
+NMS model
 
 ```
 nms-yolov8n-pose.onnx
