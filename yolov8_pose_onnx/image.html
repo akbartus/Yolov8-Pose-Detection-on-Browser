@@ -1,0 +1,326 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>YOLOv8 ONNX Serving: Image Pose Detection on the Browser</title>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <script src="opencv.js"></script>
+    <style>
+        .content {
+            position: relative;
+            width: 640px;
+            height: 640px;
+            margin: 0 auto;
+        }
+        #image,
+        #canvas {
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, 5%);
+            position: absolute;
+        }
+        .content>canvas {
+            width: 480px;
+            height: 320px;
+        }
+        .content>#image {
+            width: 480px;
+            height: 320px;
+            border: 1px solid black;
+        }
+        button {
+            font-size: 20px;
+            background-color: #000;
+            color: #fff;
+            cursor: pointer;
+            position: absolute;
+            top: 90%;
+            left: 50%;
+            margin-top: -50px;
+            margin-left: -50px;
+            width: 150px;
+            height: 50px;
+        }
+        button:hover {
+            background-color: #fff;
+            border: 2px solid #000;
+            color: #000
+        }
+        #header {
+            position: absolute;
+            z-index: 2;
+            width: 100%;
+            text-align: center;
+        }
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, Helvetica, Arial, sans-serif;
+            width: 100%;
+        }
+        code {
+            font-family: source-code-pro, Menlo, Monaco, Consolas, Courier New, monospace
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <h1>YOLOv8 Image Pose Detection Example</h1>
+        <p>Serving : <code class="code">yolov8n-pose.onnx</code></p>
+        <p>Model size : <code class="code">640x640</code></p>
+        <input type="file" accept="image/*" onchange="loadFile(event)" id="upload" style="z-index: 9;">
+    </div>
+    <div id="root">
+        <div class="App">
+            <div class="content">
+                <img id="image">
+                <canvas id="canvas" width="640" height="640"></canvas>
+            </div>
+        </div>
+    </div>
+    <div>
+        <button id="runInference">Run Inference</button>
+        <script>
+            // Add labels
+            const labels = [
+                "person"
+            ];
+
+            // React State implementation in Vanilla JS
+            const useState = (defaultValue) => {
+                let value = defaultValue;
+                const getValue = () => value;
+                const setValue = (newValue) => (value = newValue);
+                return [getValue, setValue];
+            };
+
+            // Declare variables
+            const [session, setSession] = useState(null);
+            const [loading, setLoading] = useState({ text: "Loading OpenCV.js", progress: null });
+            const [image, setImage] = useState(null);
+            let inputImage;
+            let imageRef;
+            let canvasRef;
+            let videoRef;
+            let streaming = null;
+            let processVideoInterval;
+
+
+            // Configs
+            const modelName = "model/yolov8n-pose.onnx";
+            const modelInputShape = [1, 3, 640, 640];
+            const topk = 50;
+            const iouThreshold = 0.45;
+            const scoreThreshold = 0.25;
+            let mySession;
+
+            // wait until opencv.js initialized
+            cv["onRuntimeInitialized"] = async () => {
+                // create session
+                const [yolov8, nms] = await Promise.all([
+                    ort.InferenceSession.create(`${modelName}`),
+                    ort.InferenceSession.create(`model/nms-yolov8n-pose.onnx`),
+                ]);
+                // warmup main model
+                const tensor = new ort.Tensor(
+                    "float32",
+                    new Float32Array(modelInputShape.reduce((a, b) => a * b)),
+                    modelInputShape
+                );
+                await yolov8.run({ images: tensor });
+                mySession = setSession({ net: yolov8, nms: nms });
+            };
+
+
+            // Detect
+            const detectImage = async (
+                image,
+                canvas,
+                session,
+                topk,
+                iouThreshold,
+                scoreThreshold,
+                inputShape,
+                callback = () => { },
+            ) => {
+                const [modelWidth] = inputShape.slice(2);
+                const [modelHeight] = inputShape.slice(3);
+                const [input, xRatio, yRatio] = preprocessing(image, modelWidth, modelHeight);
+
+                const tensor = new ort.Tensor("float32", input.data32F, inputShape); // to ort.Tensor
+                const config = new ort.Tensor("float32",
+                    new Float32Array([
+                        topk, 
+                        iouThreshold, 
+                        scoreThreshold, 
+                    ])
+                );
+
+
+                const { output0 } = await session.net.run({ images: tensor }); 
+                const { selected } = await session.nms.run({ detection: output0, config: config });
+
+                const boxes = [];
+
+                // looping through output
+                for (let idx = 0; idx < selected.dims[1]; idx++) {
+                    const data = selected.data.slice(idx * selected.dims[2], (idx + 1) * selected.dims[2]); // get rows
+                    const box = data.slice(0, 4);
+                    const score = data.slice(4, 5); // classes probability scores
+                    const landmarks = data.slice(5); // maximum probability scores
+                    const label = 0; // class id of maximum probability scores
+
+                    const [x, y, w, h] = [
+                        (box[0] - 0.5 * box[2]) * xRatio, // upscale left
+                        (box[1] - 0.5 * box[3]) * yRatio, // upscale top
+                        box[2] * xRatio, // upscale width
+                        box[3] * yRatio, // upscale height
+                    ]; // keep boxes in maxSize range
+
+                    boxes.push({
+                        label: label,
+                        probability: score,
+                        bounding: [x, y, w, h], // upscale box
+                        landmarks: landmarks
+                    }); // update boxes to draw later
+                }
+                renderBoxes(canvas, boxes, xRatio, yRatio); // Draw boxes
+
+                callback();
+                input.delete(); // delete unused Mat
+            };
+
+
+            const renderBoxes = (canvas, boxes, xi, yi) => {
+                const ctx = canvas.getContext("2d", { willReadFrequently: true });
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clean canvas
+                boxes.forEach((box) => {
+                    const keypoints = box.landmarks;
+                    // draw landmarks
+                    let c = 0;
+                    for (let j = 0; j < keypoints.length; j += 3) {
+                        const x = keypoints[j] * xi;
+                        const y = keypoints[j + 1] * yi;                       
+                        const bodyPart = Object.keys(colors)[c];   
+                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                        ctx.fillStyle = colors[bodyPart];
+                        ctx.fill();
+                        ctx.closePath();
+                        c += 1;
+                    }
+
+                    // draw connections, or if necessary remove
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'white';
+
+                    for (const [partA, partB] of connections) {
+                        const indexA = Object.keys(colors).indexOf(partA);
+                        const indexB = Object.keys(colors).indexOf(partB);
+                        if (indexA !== -1 && indexB !== -1) {
+                            ctx.beginPath();
+                            ctx.moveTo(keypoints[indexA * 3] * xi, keypoints[indexA * 3 + 1] * yi);
+                            ctx.lineTo(keypoints[indexB * 3] * xi, keypoints[indexB * 3 + 1] * yi);
+                            ctx.stroke();
+                        }
+                    }77
+                });
+            };
+
+            // PREPROCESS
+            const preprocessing = (source, modelWidth, modelHeight) => {
+                const mat = cv.imread(source);
+
+                // padding image to [n x n] dim
+                const maxSize = Math.max(mat.rows, mat.cols); 
+                const xPad = maxSize - mat.cols, 
+                    xRatio = maxSize / mat.cols; 
+                const yPad = maxSize - mat.rows, 
+                    yRatio = maxSize / mat.rows; 
+                const matPad = new cv.Mat(); 
+
+                cv.copyMakeBorder(mat, matPad, 0, yPad, 0, xPad, cv.BORDER_CONSTANT); // padding black
+
+                cv.cvtColor(matPad, matPad, cv.COLOR_BGRA2BGR);
+                const input = cv.blobFromImage(
+                    matPad,
+                    1 / 255.0, 
+                    new cv.Size(modelWidth, modelHeight),
+                    new cv.Scalar(0, 0, 0),
+                    true, 
+                    false
+                ); 
+
+                matPad.delete();
+                return [input, xRatio, yRatio];
+            };
+
+            const colors = {
+                nose: 'red',
+                leftEye: 'blue',
+                rightEye: 'green',
+                leftEar: 'orange',
+                rightEar: 'purple',
+                leftShoulder: 'yellow',
+                rightShoulder: 'pink',
+                leftElbow: 'cyan',
+                rightElbow: 'magenta',
+                leftWrist: 'lime',
+                rightWrist: 'indigo',
+                leftHip: 'teal',
+                rightHip: 'violet',
+                leftKnee: 'gold',
+                rightKnee: 'silver',
+                leftAnkle: 'brown',
+                rightAnkle: 'black'
+            };
+
+            const connections = [
+                ['nose', 'leftEye'],
+                ['nose', 'rightEye'],
+                ['leftEye', 'leftEar'],
+                ['rightEye', 'rightEar'],
+                ['leftShoulder', 'rightShoulder'],
+                ['leftShoulder', 'leftElbow'],
+                ['rightShoulder', 'rightElbow'],
+                ['leftElbow', 'leftWrist'],
+                ['rightElbow', 'rightWrist'],
+                ['leftShoulder', 'leftHip'],
+                ['rightShoulder', 'rightHip'],
+                ['leftHip', 'rightHip'],
+                ['leftHip', 'leftKnee'],
+                ['rightHip', 'rightKnee'],
+                ['leftKnee', 'leftAnkle'],
+                ['rightKnee', 'rightAnkle']
+            ];
+
+            // Run inference
+            document.querySelector("#runInference").addEventListener("click", () => {
+                const image = document.querySelector("#image");
+                const canvas = document.querySelector("canvas");
+                const context = canvas.getContext("2d");
+                context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                detectImage(
+                    canvas, canvas, mySession, topk, iouThreshold, scoreThreshold, modelInputShape
+                );
+            });
+
+            function loadFile(event) {
+                var output = document.getElementById('image');
+                output.src = URL.createObjectURL(event.target.files[0]);
+                output.onload = function () {
+                    URL.revokeObjectURL(output.src)
+                }
+            };
+        </script>
+</body>
+</html>
