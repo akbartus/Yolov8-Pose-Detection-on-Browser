@@ -4,7 +4,7 @@
 </p>
 
 ## Description and Rationale
-This repository was created to show implementations of YOLOv8 pose detection (estimation) powered by ONNX and TFJS on the browser environment. It is written in vanilla JavaScript without any frameworks, can be run without any server(on frontend) and demonstrates pose detection on image and web camera. By creating this repository I hope to popularize popular object detection models as YOLO and hope it will find its wide use in STEM related areas. 
+This repository was created to show implementations of YOLOv8 pose detection (estimation) powered by ONNX and TFJS on the browser environment. It is written in vanilla JavaScript without any frameworks, can be run without any server(on frontend) and demonstrates pose detection on image and web camera.
 
 The repository contains the following implementations of YOLOv8 on the browser:
 * Web camera based YOLOv8 pose detection (estimation) powered by TFJS. Works very fast.
