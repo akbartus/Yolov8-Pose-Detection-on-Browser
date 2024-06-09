@@ -70,7 +70,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: none;
+           
         }
     </style>
 </head>
@@ -136,59 +136,65 @@
             };
 
             // Detect Image Function
-            const detectImage = async (
-                image,
-                canvas,
-                session,
-                topk,
-                iouThreshold,
-                scoreThreshold,
-                inputShape,
-                callback = () => { },
-            ) => {
-                const [modelWidth] = inputShape.slice(2);
-                const [modelHeight] = inputShape.slice(3);
-                const [input, xRatio, yRatio] = preprocessing(image, modelWidth, modelHeight);
+            // Detect Image Function
+const detectImage = async (
+    video,
+    canvas,
+    session,
+    topk,
+    iouThreshold,
+    scoreThreshold,
+    inputShape,
+    callback = () => { },
+) => {
+    const [modelWidth] = inputShape.slice(2);
+    const [modelHeight] = inputShape.slice(3);
+    const [input, xRatio, yRatio] = preprocessing(video, modelWidth, modelHeight);
 
-                const tensor = new ort.Tensor("float32", input.data32F, inputShape); // to ort.Tensor
-                const config = new ort.Tensor("float32",
-                    new Float32Array([
-                        topk, 
-                        iouThreshold, 
-                        scoreThreshold, 
-                    ])
-                );
+    const tensor = new ort.Tensor("float32", input.data32F, inputShape); // to ort.Tensor
+    const config = new ort.Tensor("float32",
+        new Float32Array([
+            topk,
+            iouThreshold,
+            scoreThreshold,
+        ])
+    );
 
-                const { output0 } = await session.net.run({ images: tensor }); // run session and get output layer
-                const { selected } = await session.nms.run({ detection: output0, config: config }); // perform nms and filter boxes
-                const boxes = [];
+    const { output0 } = await session.net.run({ images: tensor }); // run session and get output layer
+    const { selected } = await session.nms.run({ detection: output0, config: config }); // perform nms and filter boxes
+    const boxes = [];
 
-                // looping through output
-                for (let idx = 0; idx < selected.dims[1]; idx++) {
-                    const data = selected.data.slice(idx * selected.dims[2], (idx + 1) * selected.dims[2]); // get rows
-                    const box = data.slice(0, 4);
-                    const score = data.slice(4, 5);
-                    const landmarks = data.slice(5);
-                    const label = 0;
+    // Clear canvas
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    const [x, y, w, h] = [
-                        (box[0] - 0.5 * box[2]) * xRatio,
-                        (box[1] - 0.5 * box[3]) * yRatio,
-                        box[2] * xRatio,
-                        box[3] * yRatio,
-                    ];
+    // looping through output
+    for (let idx = 0; idx < selected.dims[1]; idx++) {
+        const data = selected.data.slice(idx * selected.dims[2], (idx + 1) * selected.dims[2]); // get rows
+        const box = data.slice(0, 4);
+        const score = data.slice(4, 5);
+        const landmarks = data.slice(5);
+        const label = 0;
 
-                    boxes.push({
-                        label: label,
-                        probability: score,
-                        bounding: [x, y, w, h],
-                        landmarks: landmarks
-                    });
-                }
-                renderBoxes(canvas, boxes, xRatio, yRatio);
-                callback();
-                input.delete();
-            };
+        const [x, y, w, h] = [
+            (box[0] - 0.5 * box[2]) * xRatio,
+            (box[1] - 0.5 * box[3]) * yRatio,
+            box[2] * xRatio,
+            box[3] * yRatio,
+        ];
+
+        boxes.push({
+            label: label,
+            probability: score,
+            bounding: [x, y, w, h],
+            landmarks: landmarks
+        });
+    }
+    renderBoxes(canvas, boxes, xRatio, yRatio);
+    callback();
+    input.delete();
+};
+
 
 
             const renderBoxes = (canvas, boxes, xi, yi) => {
@@ -227,17 +233,21 @@
             };
 
             // PREPROCESS
-            const preprocessing = (source, modelWidth, modelHeight) => {
-                const mat = cv.imread(source);
+            const preprocessing = (video, modelWidth, modelHeight) => {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = modelWidth;
+                tempCanvas.height = modelHeight;
+                const tempContext = tempCanvas.getContext('2d');
+                tempContext.drawImage(video, 0, 0, modelWidth, modelHeight);
+                const imageData = tempContext.getImageData(0, 0, modelWidth, modelHeight);
+                const mat = cv.matFromImageData(imageData);
                 const maxSize = Math.max(mat.rows, mat.cols);
                 const xPad = maxSize - mat.cols, 
                     xRatio = maxSize / mat.cols; 
                 const yPad = maxSize - mat.rows,
                     yRatio = maxSize / mat.rows; 
                 const matPad = new cv.Mat();
-
                 cv.copyMakeBorder(mat, matPad, 0, yPad, 0, xPad, cv.BORDER_CONSTANT); 
-
                 cv.cvtColor(matPad, matPad, cv.COLOR_BGRA2BGR);
                 const input = cv.blobFromImage(
                     matPad,
@@ -247,8 +257,8 @@
                     true, 
                     false 
                 );
-                // mat.delete();
                 matPad.delete();
+                mat.delete();
                 return [input, xRatio, yRatio];
             };
 
@@ -299,8 +309,6 @@
 
                 const video = document.querySelector("#video");
                 const canvas = document.querySelector("canvas");
-                const context = canvas.getContext('2d', { willReadFrequently: true });
-         
 
                 const constraints = {
                     audio: false,
@@ -314,11 +322,9 @@
                         video.srcObject = stream;
                         video.play();
                         setInterval(() => {
-                            // Draw video frame on canvas
-                            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                            // Run object detection on the canvas image
+                            // Run object detection on the video stream
                             detectImage(
-                                canvas, canvas, mySession, topk, iouThreshold, scoreThreshold, modelInputShape
+                                video, canvas, mySession, topk, iouThreshold, scoreThreshold, modelInputShape
                             );
                         }, 100);
                     })
@@ -350,3 +356,4 @@
 </body>
 
 </html>
+
